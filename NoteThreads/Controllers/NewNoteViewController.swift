@@ -15,7 +15,6 @@ class NewNoteViewController: UIViewController {
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
-    @IBOutlet weak var noteTitle: UITextField!
     @IBOutlet weak var noteBody: UITextView!
     
     @IBOutlet weak var discardButton: UIButton!
@@ -34,16 +33,17 @@ class NewNoteViewController: UIViewController {
     
     @IBAction func saveButtonPressed(_ sender: UIButton) {
         
-        if let title = noteTitle.text, let body = noteBody.text {
-            saveNote(title: title, body: body)
+        if let body = noteBody.text {
+            saveNote(body: body)
         }
         dismiss(animated: true)
     }
     
-    func saveNote(title: String, body: String) {
+    func saveNote(body: String) {
+        
         let newNote = Note(context: context)
-        newNote.title = title
         newNote.body = body
+        newNote.date = Date()
         
         do {
             try context.save()

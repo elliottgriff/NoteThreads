@@ -7,9 +7,22 @@
 
 import UIKit
 
-class NoteCollectionViewCell: UICollectionViewCell {
+class NoteCollectionViewCell: UICollectionViewCell, NoteCellDelegate {
     
-    @IBOutlet var title: UILabel!
-    @IBOutlet var body: UILabel!
+    func toggle() {
+        print("toggle")
+        if deleteButton.isHidden {
+            deleteButton.isHidden = false
+        } else {
+            deleteButton.isHidden = true
+        }
+    }
+    
+    let noteCollection = NotesCollectionViewController()
+
+    @IBOutlet weak var body: UILabel!
+    @IBOutlet weak var deleteButton: UIButton!
+    
+    
     
 }
