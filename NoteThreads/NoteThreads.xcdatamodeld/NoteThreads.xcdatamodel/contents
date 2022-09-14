@@ -3,15 +3,16 @@
     <entity name="Note" representedClassName="Note" syncable="YES">
         <attribute name="body" optional="YES" attributeType="String"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="group" optional="YES" attributeType="String"/>
         <attribute name="noteIndex" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
-    <entity name="NoteSection" representedClassName="NoteSection" syncable="YES">
+    <entity name="NoteGroup" representedClassName="NoteGroup" syncable="YES">
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="sectionIndex" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="title" optional="YES" attributeType="String"/>
     </entity>
     <elements>
-        <element name="Note" positionX="-63" positionY="-18" width="128" height="74"/>
-        <element name="NoteSection" positionX="-63" positionY="0" width="128" height="74"/>
+        <element name="Note" positionX="-63" positionY="-18" width="128" height="89"/>
+        <element name="NoteGroup" positionX="-63" positionY="0" width="128" height="74"/>
     </elements>
 </model>

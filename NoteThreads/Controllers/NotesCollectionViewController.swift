@@ -11,6 +11,10 @@ protocol NoteCellDelegate: UICollectionViewCell {
     func toggle()
 }
 
+protocol NotesCollectionViewControllerDelegate: AnyObject {
+    func refresh()
+}
+
 class NotesCollectionViewController: UICollectionViewController, NewNoteViewControllerDelegate, EditNoteDelegate, UIGestureRecognizerDelegate, UICollectionViewDelegateFlowLayout {
 
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -19,20 +23,18 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
     private let newNoteSegue = "NewNote"
     
     private var notes = [Note]()
-    private var noteSections = [NoteSection]()
+    private var groups = [NoteGroup]()
     
     var editSwitch = false
+    var groupInt: Int?
     
-    weak var delegate: NoteCellDelegate?
+    weak var cellDelegate: NoteCellDelegate?
+    weak var delegate: NotesCollectionViewControllerDelegate?
     
     override func viewDidLoad() {
         
         super.viewDidLoad()
         
-        title = "NoteStrings"
-        
-        setupPressGesture()
-
         collectionView.delegate = self
         collectionView.dataSource = self
         
@@ -44,6 +46,19 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         fetchSections()
         fetchNotes()
         
+        if let groupInt = groupInt {
+            title = groups[groupInt].title
+        }
+        
+    }
+    
+    init?(coder: NSCoder, groupInt: Int) {
+        self.groupInt = groupInt
+        super.init(coder: coder)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
     @IBAction func newSectionPressed(_ sender: Any) {
@@ -55,12 +70,12 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         alert.addTextField(configurationHandler: nil)
         alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { [weak self] _ in
             guard let field = alert.textFields?.first,
-                    let newSectionTitle = field.text, !newSectionTitle.isEmpty,
+                    let newGroupTitle = field.text, !newGroupTitle.isEmpty,
                     let context = self?.context else { return }
             
-            let newSection = NoteSection(context: context)
-            newSection.title = newSectionTitle
-            newSection.date = Date()
+            let newGroup = NoteGroup(context: context)
+            newGroup.title = newGroupTitle
+            newGroup.date = Date()
             do {
                 try context.save()
             } catch {
@@ -106,32 +121,6 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         
     }
 
-    func setupPressGesture() {
-        let gesture = UILongPressGestureRecognizer(target: self, action: #selector(handleDragPress(_:)))
-        collectionView.addGestureRecognizer(gesture)
-    }
-
-    @objc func handleDragPress(_ gesture: UILongPressGestureRecognizer){
-        
-        guard let collectionView = collectionView else { return }
-        
-        switch gesture.state {
-        case .began:
-            guard let targetIndexPath = collectionView.indexPathForItem(at: gesture.location(in: collectionView)) else {
-                return
-            }
-            collectionView.beginInteractiveMovementForItem(at: targetIndexPath)
-            
-        case .changed:
-            collectionView.updateInteractiveMovementTargetPosition(gesture.location(in: collectionView))
-        case .ended:
-            collectionView.endInteractiveMovement()
-        default:
-            collectionView.cancelInteractiveMovement()
-        }
-        
-    }
-
     func deleteItem(item: Note) {
         
         context.delete(item)
@@ -139,6 +128,19 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         do {
             try context.save()
             fetchNotes()
+            fetchSections()
+        } catch {
+            print("cannot delete item")
+        }
+    }
+    
+    func deleteSection(group: NoteGroup) {
+        
+        context.delete(group)
+        do {
+            try context.save()
+            fetchNotes()
+            fetchSections()
         } catch {
             print("cannot delete item")
         }
@@ -146,6 +148,8 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
 
     func refresh() {
         fetchNotes()
+        fetchSections()
+        delegate?.refresh()
     }
     
     func updateNote(newBody: String, index: Int, newDate: Date) {
@@ -163,12 +167,12 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
     }
     
     func fetchSections() {
-        let request = NoteSection.fetchRequest()
+        let request = NoteGroup.fetchRequest()
         let sort = NSSortDescriptor(key: "date", ascending: false)
         request.sortDescriptors = [sort]
         
         do {
-            noteSections = try context.fetch(request)
+            groups = try context.fetch(request)
             DispatchQueue.main.async {
                 self.collectionView.reloadData()
             }
@@ -184,8 +188,17 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
     func fetchNotes() {
         
         let request = Note.fetchRequest()
-        let sort = NSSortDescriptor(key: "date", ascending: false)
-        request.sortDescriptors = [sort]
+        let sort1 = NSSortDescriptor(key: "date", ascending: false)
+        guard let groupInt = groupInt else {
+            return
+        }
+
+        if let filter = groups[groupInt].title {
+            let predicate = NSPredicate(format: "group = %@", filter)
+            request.predicate = predicate
+        }
+        
+        request.sortDescriptors = [sort1]
         
         do {
             notes = try context.fetch(request)
@@ -207,22 +220,15 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
                                               heightDimension: .fractionalHeight(1))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
         
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.92),
-                                               heightDimension: .fractionalWidth(2/5))
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 3)
-        group.interItemSpacing = .fixed(10)
+        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1),
+                                               heightDimension: .fractionalWidth(0.45))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitem: item, count: 2)
+        group.interItemSpacing = .fixed(20)
         
         let section = NSCollectionLayoutSection(group: group)
-        section.interGroupSpacing = 10
-        section.contentInsets = NSDirectionalEdgeInsets(top: 15, leading: 0, bottom: 15, trailing: 0)
+        section.interGroupSpacing = 20
+        section.contentInsets = NSDirectionalEdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20)
         
-        let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(60))
-        let header = NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
-
-        section.boundarySupplementaryItems = [header]
-        section.orthogonalScrollingBehavior = .groupPagingCentered
-        
-    
         return UICollectionViewCompositionalLayout(section: section)
     }
     
@@ -235,8 +241,8 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         }
     }
     
-   
-    @IBSegueAction func headerNewNotePressed(_ coder: NSCoder, sender: UIButton, segueIdentifier: String?) -> NewNoteViewController? {
+    @IBSegueAction func createNewNotePressed(_ coder: NSCoder, sender: Any?, segueIdentifier: String?) -> NewNoteViewController? {
+        
         editSwitch = false
         do {
             try context.save()
@@ -248,12 +254,18 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
             self.collectionView.reloadData()
         }
         
-        let index = Int32(sender.tag)
+        guard let groupInt = groupInt else {
+            return nil
+        }
+
+        if let groupTitle = groups[groupInt].title {
+            let newNoteVC = NewNoteViewController(coder: coder, group: groupTitle)
+            return newNoteVC
+        }
         
-        let NewNoteVC = NewNoteViewController(coder: coder, index: index)
-        return NewNoteVC
-        
+        return NewNoteViewController(coder: coder, group: "fuck")
     }
+    
     
     @IBSegueAction func editNoteSegue(_ coder: NSCoder, sender: UICollectionViewCell?,
                                       segueIdentifier: String?) -> EditNoteViewController? {
@@ -273,8 +285,8 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
               let indexPath = collectionView.indexPath(for: cell) else { return nil }
         
         if let body = notes[indexPath.row].body, let date = notes[indexPath.row].date {
-            let NoteVC = EditNoteViewController(coder: coder, body: body, index: indexPath.row, date: date)
-            return NoteVC
+            let editNoteVC = EditNoteViewController(coder: coder, body: body, index: indexPath.row, date: date)
+            return editNoteVC
         } else {
             print("can't load existing note")
             return EditNoteViewController(coder: coder, body: "", index: indexPath.row, date: Date())
@@ -282,133 +294,66 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
     }
     
     override func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return noteSections.count
+        return 1
     }
     
-    override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        
-        if let sectionHeader = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "HeaderView", for: indexPath) as? HeaderCollectionReusableView {
-            if let title = noteSections[indexPath.section].title {
-                sectionHeader.headerTitle.text = title
-                sectionHeader.headerNewNoteButton.tag = indexPath.section
-            }
-            
-            return sectionHeader
-        }
-        return UICollectionReusableView()
-    }
- 
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return notes.count
     }
     
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-
         
-        for section in noteSections {
-
-            if section.sectionIndex as Int32 == notes[indexPath.row].noteIndex as! Int32 {
-                print("does", section.title as Any)
-            }
-        }
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier,
                                                       for: indexPath) as! NoteCollectionViewCell
-        cell.body.text = notes[indexPath.row].body
-        
-        cell.contentView.backgroundColor = .systemCyan
-        cell.contentView.layer.cornerRadius = 8
-        cell.layer.cornerRadius = 8
-        cell.layer.shadowRadius = 3
-        cell.layer.shadowColor = UIColor.systemGray3.cgColor
-        cell.layer.shadowOffset = CGSize(width: 0, height: 2)
-        cell.layer.shadowOpacity = 1
-        cell.layer.masksToBounds = false
-        
-        cell.deleteButton.tag = indexPath.row
-        
-        if editSwitch == false {
-            cell.deleteButton.isHidden = true
+                
+            cell.body.text = notes[indexPath.row].body
             
-            let layer: CALayer = cell.layer
-            layer.removeAnimation(forKey: "shaking")
-        } else {
-            cell.deleteButton.isHidden = false
+            cell.contentView.backgroundColor = .systemCyan
+            cell.contentView.layer.cornerRadius = 8
+            cell.layer.cornerRadius = 8
+            cell.layer.shadowRadius = 3
+            cell.layer.shadowColor = UIColor.systemGray3.cgColor
+            cell.layer.shadowOffset = CGSize(width: 0, height: 2)
+            cell.layer.shadowOpacity = 1
+            cell.layer.masksToBounds = false
             
-            let shakeAnimation = CABasicAnimation(keyPath: "transform.rotation")
-            shakeAnimation.duration = 0.05
-            shakeAnimation.repeatCount = 2
-            shakeAnimation.autoreverses = true
-            let startAngle: Float = (-2) * 3.14159/180
-            let stopAngle = -startAngle
-            shakeAnimation.fromValue = NSNumber(value: startAngle as Float)
-            shakeAnimation.toValue = NSNumber(value: 3 * stopAngle as Float)
-            shakeAnimation.autoreverses = true
-            shakeAnimation.duration = 0.15
-            shakeAnimation.repeatCount = 10000
-            shakeAnimation.timeOffset = 290 * drand48()
+            cell.deleteButton.tag = indexPath.row
             
-            let layer: CALayer = cell.layer
-            layer.add(shakeAnimation, forKey:"shaking")
-        }
+            if editSwitch == false {
+                cell.deleteButton.isHidden = true
+                
+                let layer: CALayer = cell.layer
+                layer.removeAnimation(forKey: "shaking")
+            } else {
+                cell.deleteButton.isHidden = false
+                
+                let shakeAnimation = CABasicAnimation(keyPath: "transform.rotation")
+                shakeAnimation.duration = 0.05
+                shakeAnimation.repeatCount = 2
+                shakeAnimation.autoreverses = true
+                let startAngle: Float = (-2) * 3.14159/180
+                let stopAngle = -startAngle
+                shakeAnimation.fromValue = NSNumber(value: startAngle as Float)
+                shakeAnimation.toValue = NSNumber(value: 3 * stopAngle as Float)
+                shakeAnimation.autoreverses = true
+                shakeAnimation.duration = 0.15
+                shakeAnimation.repeatCount = 10000
+                shakeAnimation.timeOffset = 290 * drand48()
+                
+                let layer: CALayer = cell.layer
+                layer.add(shakeAnimation, forKey:"shaking")
+            }
         return cell
     }
     
-    override func collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool {
-        return true
-    }
-    
-    override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-    }
-    
-    
-    override func collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
-        
-        let item = notes.remove(at: sourceIndexPath.row)
-        notes.insert(item, at: destinationIndexPath.row)
-
-        do {
-            try context.save()
-        } catch {
-            print("couldnt save new order")
-        }
-    }
-    
 }
-
-extension UICollectionView {
-
-  func indexPathForView(view: AnyObject) -> IndexPath? {
-      guard let view = view as? UIView else { return nil }
-      let senderIndexPath = self.convert(CGPoint.zero, from: view)
-      return self.indexPathForItem(at: senderIndexPath)
-  }
-
-}
-
-
 //
-//    func setupLongPressGestures() {
-//        let longPressGesture:UILongPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-//        longPressGesture.minimumPressDuration = 1.0
-//        longPressGesture.delegate = self
+//extension UICollectionView {
 //
-//        self.collectionView.addGestureRecognizer(longPressGesture)
-//    }
-
-//    @objc func handleLongPress(_ gestureRecognizer: UILongPressGestureRecognizer){
-//        if gestureRecognizer.state == .began {
-//            let touchPoint = gestureRecognizer.location(in: self.collectionView)
-//            if let indexPath = collectionView.indexPathForItem(at: touchPoint) {
-//                let item = notes[indexPath.row]
-//                let cell = collectionView.cellForItem(at: indexPath)
-//                let alert = UIAlertController(title: "Delete Note?",
-//                                              message: notes[indexPath.row].body,
-//                                              preferredStyle: .alert)
-//                alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-//                alert.addAction(UIAlertAction(title: "Delete", style: .default, handler: { _ in
-//                    self.deleteItem(item: item)
-//                }))
-//                present(alert, animated: true)
-//            }
-//        }
-//    }
+//  func indexPathForView(view: AnyObject) -> IndexPath? {
+//      guard let view = view as? UIView else { return nil }
+//      let senderIndexPath = self.convert(CGPoint.zero, from: view)
+//      return self.indexPathForItem(at: senderIndexPath)
+//  }
+//
+//}

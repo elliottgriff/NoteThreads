@@ -15,26 +15,18 @@ class NewNoteViewController: UIViewController {
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
-    let sectionIndex: Int32?
-    
     @IBOutlet weak var noteBody: UITextView!
     
     @IBOutlet weak var discardButton: UIButton!
     @IBOutlet weak var saveButton: UIButton!
     
+    private var groupString: String?
+    
     weak var delegate: NewNoteViewControllerDelegate?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-    }
-    
-    init?(coder: NSCoder, index: Int32) {
-        self.sectionIndex = index
-        super.init(coder: coder)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        print(groupString)
     }
     
     @IBAction func discardButtonPressed(_ sender: UIButton) {
@@ -49,14 +41,22 @@ class NewNoteViewController: UIViewController {
         dismiss(animated: true)
     }
     
+    init?(coder: NSCoder, group: String) {
+        self.groupString = group
+        super.init(coder: coder)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     func saveNote(body: String) {
         
         let newNote = Note(context: context)
         newNote.body = body
         newNote.date = Date()
-        newNote.noteIndex = sectionIndex as NSNumber?
+        newNote.group = groupString
         
-        print(newNote.noteIndex, "new note index")
         do {
             try context.save()
             delegate?.refresh()
@@ -69,4 +69,5 @@ class NewNoteViewController: UIViewController {
             
         }
     }
+    
 }

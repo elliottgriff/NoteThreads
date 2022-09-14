@@ -17,8 +17,6 @@ class NoteCollectionViewCell: UICollectionViewCell, NoteCellDelegate {
             deleteButton.isHidden = true
         }
     }
-    
-    let noteCollection = NotesCollectionViewController()
 
     @IBOutlet weak var body: UILabel!
     @IBOutlet weak var deleteButton: UIButton!

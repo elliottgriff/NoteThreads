@@ -11,6 +11,5 @@ class HeaderCollectionReusableView: UICollectionReusableView {
     
     static let identifier = "HeaderIdentifier"
     @IBOutlet weak var headerTitle: UILabel!
-    @IBOutlet weak var headerNewNoteButton: UIButton!
     
 }
