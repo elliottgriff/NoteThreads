@@ -14,6 +14,7 @@
 		4F4E24E328C94949006D7B86 /* Note+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4E24E128C94949006D7B86 /* Note+CoreDataProperties.swift */; };
 		4F4E24E628C95AB1006D7B86 /* NoteGroup+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4E24E428C95AB1006D7B86 /* NoteGroup+CoreDataClass.swift */; };
 		4F4E24E728C95AB1006D7B86 /* NoteGroup+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F4E24E528C95AB1006D7B86 /* NoteGroup+CoreDataProperties.swift */; };
+		4F52FCB828D380B2008F83EE /* DesignViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F52FCB728D380B2008F83EE /* DesignViewController.swift */; };
 		4FA9E80828D136A000DA26CA /* GroupSelectTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FA9E80728D136A000DA26CA /* GroupSelectTableViewController.swift */; };
 		4FA9E80A28D1376B00DA26CA /* GroupTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FA9E80928D1376B00DA26CA /* GroupTableViewCell.swift */; };
 		4FAB9B9828B8113E0017F6A0 /* NoteCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FAB9B9728B8113E0017F6A0 /* NoteCollectionViewCell.swift */; };
@@ -55,6 +56,7 @@
 		4F4E24E128C94949006D7B86 /* Note+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Note+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		4F4E24E428C95AB1006D7B86 /* NoteGroup+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "NoteGroup+CoreDataClass.swift"; path = "../NoteGroup+CoreDataClass.swift"; sourceTree = "<group>"; };
 		4F4E24E528C95AB1006D7B86 /* NoteGroup+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = "NoteGroup+CoreDataProperties.swift"; path = "../NoteGroup+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		4F52FCB728D380B2008F83EE /* DesignViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignViewController.swift; sourceTree = "<group>"; };
 		4FA9E80728D136A000DA26CA /* GroupSelectTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSelectTableViewController.swift; sourceTree = "<group>"; };
 		4FA9E80928D1376B00DA26CA /* GroupTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupTableViewCell.swift; sourceTree = "<group>"; };
 		4FAB9B9728B8113E0017F6A0 /* NoteCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCollectionViewCell.swift; sourceTree = "<group>"; };
@@ -125,6 +127,7 @@
 				4F3037DC28BD0E3F003FCBBF /* NewNoteViewController.swift */,
 				4F36F52528BFA74F00159162 /* EditNoteViewController.swift */,
 				4FA9E80728D136A000DA26CA /* GroupSelectTableViewController.swift */,
+				4F52FCB728D380B2008F83EE /* DesignViewController.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -348,6 +351,7 @@
 				4F4E24E728C95AB1006D7B86 /* NoteGroup+CoreDataProperties.swift in Sources */,
 				4FC8E33328C7F45E00D9B39D /* HeaderCollectionReusableView.swift in Sources */,
 				4F2D701B28D20D5E004FAA4D /* AddGroupTableViewCell.swift in Sources */,
+				4F52FCB828D380B2008F83EE /* DesignViewController.swift in Sources */,
 				4FB1088628B6B7B7001ABAC2 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

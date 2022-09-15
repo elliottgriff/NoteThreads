@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="20086" systemVersion="21G83" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Note" representedClassName="Note" syncable="YES">
+        <attribute name="backgroundColor" optional="YES" attributeType="Transformable"/>
         <attribute name="body" optional="YES" attributeType="String"/>
+        <attribute name="color" optional="YES" attributeType="Transformable"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="font" optional="YES" attributeType="String"/>
+        <attribute name="fontSize" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="group" optional="YES" attributeType="String"/>
         <attribute name="noteIndex" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
@@ -12,7 +16,7 @@
         <attribute name="title" optional="YES" attributeType="String"/>
     </entity>
     <elements>
-        <element name="Note" positionX="-63" positionY="-18" width="128" height="89"/>
+        <element name="Note" positionX="-63" positionY="-18" width="128" height="149"/>
         <element name="NoteGroup" positionX="-63" positionY="0" width="128" height="74"/>
     </elements>
 </model>

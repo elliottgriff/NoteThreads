@@ -8,6 +8,7 @@
 
 import Foundation
 import CoreData
+import UIKit
 
 
 extension Note {
@@ -20,6 +21,10 @@ extension Note {
     @NSManaged public var date: Date?
     @NSManaged public var noteIndex: NSNumber?
     @NSManaged public var group: String?
+    @NSManaged public var font: String?
+    @NSManaged public var fontSize: NSNumber?
+    @NSManaged public var color: UIColor?
+    @NSManaged public var backgroundColor: UIColor?
 
 }
 

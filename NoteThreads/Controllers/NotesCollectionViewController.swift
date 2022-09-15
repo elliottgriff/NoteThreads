@@ -17,6 +17,8 @@ protocol NotesCollectionViewControllerDelegate: AnyObject {
 
 class NotesCollectionViewController: UICollectionViewController, NewNoteViewControllerDelegate, EditNoteDelegate, UIGestureRecognizerDelegate, UICollectionViewDelegateFlowLayout {
 
+    
+
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
 
     private let reuseIdentifier = "NoteCell"
@@ -152,9 +154,10 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         delegate?.refresh()
     }
     
-    func updateNote(newBody: String, index: Int, newDate: Date) {
+    func updateNote(newBody: String, index: Int, newDate: Date, newFont: String) {
         notes[index].body = newBody
         notes[index].date = newDate
+        notes[index].font = newFont
         do {
             try context.save()
         } catch {
@@ -284,12 +287,23 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         guard let cell = sender,
               let indexPath = collectionView.indexPath(for: cell) else { return nil }
         
-        if let body = notes[indexPath.row].body, let date = notes[indexPath.row].date {
-            let editNoteVC = EditNoteViewController(coder: coder, body: body, index: indexPath.row, date: date)
+        if let body = notes[indexPath.row].body,
+           let date = notes[indexPath.row].date,
+            let font = notes[indexPath.row].font,
+           let fontSize = notes[indexPath.row].fontSize?.intValue,
+            let fontColor = notes[indexPath.row].color,
+           let backgroundColor = notes[indexPath.row].backgroundColor {
+            let editNoteVC = EditNoteViewController(coder: coder, body: body,
+                                                    index: indexPath.row, date: date,
+                                                    font: font, fontSize: fontSize,
+                                                    fontColor: fontColor, backgroundColor: backgroundColor)
             return editNoteVC
         } else {
             print("can't load existing note")
-            return EditNoteViewController(coder: coder, body: "", index: indexPath.row, date: Date())
+            return EditNoteViewController(coder: coder, body: "",
+                                          index: indexPath.row, date: Date(),
+                                          font: "Arial", fontSize: 18, fontColor: .label,
+                                          backgroundColor: .secondarySystemBackground)
         }
     }
     
@@ -305,44 +319,50 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier,
                                                       for: indexPath) as! NoteCollectionViewCell
-                
-            cell.body.text = notes[indexPath.row].body
+        
+        cell.body.text = notes[indexPath.row].body
+        if let font = notes[indexPath.row].font,
+            let fontColor = notes[indexPath.row].color,
+           let backgroundColor = notes[indexPath.row].backgroundColor  {
+            cell.body.font = UIFont(name: font, size: 20)
+            cell.body.textColor = fontColor
+            cell.contentView.backgroundColor = backgroundColor
+        }
+
+        cell.contentView.layer.cornerRadius = 8
+        cell.layer.cornerRadius = 8
+        cell.layer.shadowRadius = 3
+        cell.layer.shadowColor = UIColor.systemGray3.cgColor
+        cell.layer.shadowOffset = CGSize(width: 0, height: 2)
+        cell.layer.shadowOpacity = 1
+        cell.layer.masksToBounds = false
+        
+        cell.deleteButton.tag = indexPath.row
+        
+        if editSwitch == false {
+            cell.deleteButton.isHidden = true
             
-            cell.contentView.backgroundColor = .systemCyan
-            cell.contentView.layer.cornerRadius = 8
-            cell.layer.cornerRadius = 8
-            cell.layer.shadowRadius = 3
-            cell.layer.shadowColor = UIColor.systemGray3.cgColor
-            cell.layer.shadowOffset = CGSize(width: 0, height: 2)
-            cell.layer.shadowOpacity = 1
-            cell.layer.masksToBounds = false
+            let layer: CALayer = cell.layer
+            layer.removeAnimation(forKey: "shaking")
+        } else {
+            cell.deleteButton.isHidden = false
             
-            cell.deleteButton.tag = indexPath.row
+            let shakeAnimation = CABasicAnimation(keyPath: "transform.rotation")
+            shakeAnimation.duration = 0.05
+            shakeAnimation.repeatCount = 2
+            shakeAnimation.autoreverses = true
+            let startAngle: Float = (-2) * 3.14159/180
+            let stopAngle = -startAngle
+            shakeAnimation.fromValue = NSNumber(value: startAngle as Float)
+            shakeAnimation.toValue = NSNumber(value: 3 * stopAngle as Float)
+            shakeAnimation.autoreverses = true
+            shakeAnimation.duration = 0.15
+            shakeAnimation.repeatCount = 10000
+            shakeAnimation.timeOffset = 290 * drand48()
             
-            if editSwitch == false {
-                cell.deleteButton.isHidden = true
-                
-                let layer: CALayer = cell.layer
-                layer.removeAnimation(forKey: "shaking")
-            } else {
-                cell.deleteButton.isHidden = false
-                
-                let shakeAnimation = CABasicAnimation(keyPath: "transform.rotation")
-                shakeAnimation.duration = 0.05
-                shakeAnimation.repeatCount = 2
-                shakeAnimation.autoreverses = true
-                let startAngle: Float = (-2) * 3.14159/180
-                let stopAngle = -startAngle
-                shakeAnimation.fromValue = NSNumber(value: startAngle as Float)
-                shakeAnimation.toValue = NSNumber(value: 3 * stopAngle as Float)
-                shakeAnimation.autoreverses = true
-                shakeAnimation.duration = 0.15
-                shakeAnimation.repeatCount = 10000
-                shakeAnimation.timeOffset = 290 * drand48()
-                
-                let layer: CALayer = cell.layer
-                layer.add(shakeAnimation, forKey:"shaking")
-            }
+            let layer: CALayer = cell.layer
+            layer.add(shakeAnimation, forKey:"shaking")
+        }
         return cell
     }
     
