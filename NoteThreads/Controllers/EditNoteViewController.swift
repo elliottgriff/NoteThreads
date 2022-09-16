@@ -12,7 +12,7 @@ protocol EditNoteDelegate: AnyObject {
                     newFont: String, fontSize: Int, fontColor: UIColor, backgroundColor: UIColor)
 }
 
-class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelegate, UIPickerViewDelegate, UIPickerViewDataSource, UIColorPickerViewControllerDelegate {
+class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelegate, UIColorPickerViewControllerDelegate, UITextViewDelegate {
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
@@ -29,13 +29,13 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
     @IBOutlet weak var discardButton: UIButton!
     @IBOutlet weak var updateButton: UIButton!
     
-    @IBOutlet weak var fontSizePicker: UIPickerView!
+    @IBOutlet weak var fontSizePicker: UISlider!
     
     let colorPicker = UIColorPickerViewController()
     
     weak var delegate: EditNoteDelegate?
     
-    var fontSizePickerOptions = Array(12...50)
+    var fontSizePickerOptions = Array(20...60)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -46,13 +46,26 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
         noteBody.textColor = fontColor
         
         view.backgroundColor = backgroundColor
-        fontSizePicker.delegate = self
-        fontSizePicker.dataSource = self
         colorPicker.delegate = self
+        noteBody.delegate = self
         
         if let noteFont = noteFont, let fontSize = fontSize, let fontColor = fontColor {
+            print("load edit", noteFont, fontSize, fontColor)
             setFont(size: fontSize, name: noteFont, color: fontColor)
+            fontSizePicker.setValue(Float(fontSize), animated: true)
         }
+        hideKeyboard()
+    }
+    
+    
+    func hideKeyboard() {
+        let swipe: UISwipeGestureRecognizer = UISwipeGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        swipe.direction = .down
+        noteBody.addGestureRecognizer(swipe)
+    }
+    
+    @objc func dismissKeyboard() {
+        noteBody.endEditing(true)
     }
     
     init?(coder: NSCoder, body: String, index: Int,
@@ -82,13 +95,23 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
     }
     
     @IBAction func fontSizePressed(_ sender: Any) {
-        fontSizePicker.isHidden = false
-        if let fontSize = fontSize {
-            self.fontSizePicker.selectRow(fontSize - 12, inComponent: 0, animated: false)
+        if fontSizePicker.isHidden {
+            fontSizePicker.isHidden = false
+        } else {
+            fontSizePicker.isHidden = true
         }
     }
     
+    @IBAction func sizeSliderMoved(_ sender: Any) {
+        fontSize = Int(fontSizePicker.value)
+        if let noteFont = noteFont, let fontColor = fontColor {
+            setFont(size: Int(fontSizePicker.value), name: noteFont, color: fontColor)
+        }
+    }
+    
+    
     @IBAction func fontStylePressed(_ sender: Any) {
+        fontSizePicker.isHidden = true
         let configuration = UIFontPickerViewController.Configuration()
         configuration.includeFaces = true
         let vc = UIFontPickerViewController(configuration: configuration)
@@ -152,25 +175,5 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
             }
         }
         colorPicker.dismiss(animated: true)
-    }
-    
-    func numberOfComponents(in pickerView: UIPickerView) -> Int {
-        1
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        fontSizePickerOptions.count
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        let rowTitle = "\(fontSizePickerOptions[row])"
-        return rowTitle
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        fontSize = row + 12
-        if let size = fontSize, let name = noteFont, let color = fontColor {
-            setFont(size: size, name: name, color: color)
-        }
     }
 }

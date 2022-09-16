@@ -296,6 +296,7 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
            let fontSize = notes[indexPath.row].fontSize?.intValue,
             let fontColor = notes[indexPath.row].color,
            let backgroundColor = notes[indexPath.row].backgroundColor {
+            print(fontSize, "font size edit segue")
             let editNoteVC = EditNoteViewController(coder: coder, body: body,
                                                     index: indexPath.row, date: date,
                                                     font: font, fontSize: fontSize,

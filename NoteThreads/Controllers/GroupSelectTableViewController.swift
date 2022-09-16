@@ -14,7 +14,6 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
         fetchSections()
     }
     
-    
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     private var noteGroup = [NoteGroup]()
@@ -89,7 +88,7 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
         if indexPath.row == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: "AddGroup", for: indexPath) as! AddGroupTableViewCell
             cell.body.text = "New Group"
-            cell.backgroundColor = .systemMint
+            cell.backgroundColor = .systemYellow
             return cell
         } else {
             let cell = tableView.dequeueReusableCell(withIdentifier: "GroupCell", for: indexPath) as! GroupTableViewCell

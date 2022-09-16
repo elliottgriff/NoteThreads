@@ -11,15 +11,15 @@ protocol NewNoteViewControllerDelegate: AnyObject {
     func refresh()
 }
 
-class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegate, UIPickerViewDelegate, UIPickerViewDataSource, UIColorPickerViewControllerDelegate {
+class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegate, UIColorPickerViewControllerDelegate, UITextViewDelegate {
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     let colorPicker = UIColorPickerViewController()
     
-    @IBOutlet weak var fontSizePicker: UIPickerView!
+    @IBOutlet weak var fontSizePicker: UISlider!
     
-    var fontSizePickerOptions = Array(12...50)
+    var fontSizePickerOptions = Array(20...50)
     
     @IBOutlet weak var noteBody: UITextView!
     private var noteFont: String?
@@ -37,15 +37,26 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
     override func viewDidLoad() {
         super.viewDidLoad()
         noteFont = "Arial"
-        fontSize = 18
+        fontSize = 20
         fontColor = .label
         backgroundColor = .secondarySystemBackground
         if let size = fontSize, let name = noteFont {
             setFont(size: size, name: name, color: .label)
+            fontSizePicker.setValue(Float(size), animated: true)
         }
-        fontSizePicker.delegate = self
-        fontSizePicker.dataSource = self
         colorPicker.delegate = self
+        noteBody.delegate = self
+        hideKeyboard()
+    }
+    
+    func hideKeyboard() {
+        let swipe: UISwipeGestureRecognizer = UISwipeGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        swipe.direction = .down
+        noteBody.addGestureRecognizer(swipe)
+    }
+    
+    @objc func dismissKeyboard() {
+        noteBody.endEditing(true)
     }
     
     func setFont(size: Int, name: String, color: UIColor) {
@@ -55,10 +66,23 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
     }
     
     @IBAction func fontSizePressed(_ sender: Any) {
-        fontSizePicker.isHidden = false
+        if fontSizePicker.isHidden {
+            fontSizePicker.isHidden = false
+        } else {
+            fontSizePicker.isHidden = true
+        }
     }
     
+    @IBAction func fontSizeSliderMoved(_ sender: Any) {
+        fontSize = Int(fontSizePicker.value)
+        if let noteFont = noteFont, let fontColor = fontColor {
+            setFont(size: Int(fontSizePicker.value), name: noteFont, color: fontColor)
+        }
+    }
+    
+    
     @IBAction func fontStylePressed(_ sender: Any) {
+        fontSizePicker.isHidden = true
         let configuration = UIFontPickerViewController.Configuration()
         configuration.includeFaces = true
         let vc = UIFontPickerViewController(configuration: configuration)
@@ -106,26 +130,7 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
         }
         colorPicker.dismiss(animated: true)
     }
-    
-    func numberOfComponents(in pickerView: UIPickerView) -> Int {
-        1
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        return fontSizePickerOptions.count
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        let rowTitle = "\(fontSizePickerOptions[row])"
-        return rowTitle
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        fontSize = row + 1
-        if let size = fontSize, let name = noteFont, let color = fontColor {
-            setFont(size: size, name: name, color: color)
-        }
-    }
+
     
     func fontPickerViewControllerDidPickFont(_ viewController: UIFontPickerViewController) {
         guard let descriptor = viewController.selectedFontDescriptor else { return }
