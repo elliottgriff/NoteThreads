@@ -48,7 +48,7 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
             }
         } catch {
             let alert = UIAlertController(title: "Error",
-                                          message: "Could Not Load Sections",
+                                          message: "Could Not Load Groups",
                                           preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Ok", style: .cancel, handler: nil))
             present(alert, animated: true)
@@ -89,7 +89,7 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
         if indexPath.row == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: "AddGroup", for: indexPath) as! AddGroupTableViewCell
             cell.body.text = "New Group"
-            cell.backgroundColor = .systemYellow
+            cell.backgroundColor = .systemMint
             return cell
         } else {
             let cell = tableView.dequeueReusableCell(withIdentifier: "GroupCell", for: indexPath) as! GroupTableViewCell
@@ -103,8 +103,8 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if indexPath.row == 0 {
                 
-                let alert = UIAlertController(title: "Add Section",
-                                              message: "Enter Section Name",
+                let alert = UIAlertController(title: "Add Group",
+                                              message: "Enter Group Name",
                                               preferredStyle: .alert)
                 
                 alert.addTextField(configurationHandler: nil)
@@ -119,7 +119,7 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
                     do {
                         try context.save()
                     } catch {
-                        print("couldn't update new sections")
+                        print("couldn't update new groups")
                     }
                     self?.fetchSections()
                     
@@ -133,7 +133,6 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
                 
         } else {
             groupInt = indexPath.row - 1
-//            performSegue(withIdentifier: "EnterGroupSegue", sender: self)
         }
         tableView.deselectRow(at: indexPath, animated: true)
     }
@@ -176,7 +175,7 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
     }
 
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 80
+        return 70
     }
     
     @IBSegueAction func enterGroupSegue(_ coder: NSCoder, sender: NoteCollectionViewCell?, segueIdentifier: String?) -> NotesCollectionViewController? {
@@ -206,11 +205,5 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
     }
     */
 
-    // MARK: - Navigation
-
-
-//    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-//
-//    }
 
 }

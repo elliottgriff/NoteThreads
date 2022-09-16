@@ -19,7 +19,7 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
     
     @IBOutlet weak var fontSizePicker: UIPickerView!
     
-    var fontSizePickerOptions = Array(1...50)
+    var fontSizePickerOptions = Array(12...50)
     
     @IBOutlet weak var noteBody: UITextView!
     private var noteFont: String?
@@ -84,8 +84,8 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
     
     @IBAction func saveButtonPressed(_ sender: UIButton) {
         
-        if let body = noteBody.text {
-            saveNote(body: body)
+        if let body = noteBody.text, let fontSize = fontSize {
+            saveNote(body: body, size: fontSize)
         }
         dismiss(animated: true)
     }
@@ -94,22 +94,17 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
         
         if viewController.title == "Font Color" {
             fontColor = color
-            print(fontColor)
             if let size = fontSize, let name = noteFont, let color = fontColor {
                 setFont(size: size, name: name, color: color)
             }
         } else if viewController.title == "Background Color" {
             backgroundColor = color
-            print(backgroundColor)
             if let backgroundColor = backgroundColor {
                 view.backgroundColor = backgroundColor
                 view.setNeedsLayout()
             }
         }
-        
-        
         colorPicker.dismiss(animated: true)
-        
     }
     
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
@@ -153,13 +148,14 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
         fatalError("init(coder:) has not been implemented")
     }
     
-    func saveNote(body: String) {
+    func saveNote(body: String, size: Int) {
         
         let newNote = Note(context: context)
         newNote.body = body
         newNote.date = Date()
         newNote.group = groupString
         newNote.font = noteFont
+        newNote.fontSize = fontSize as NSNumber?
         newNote.color = fontColor
         newNote.backgroundColor = backgroundColor
         
@@ -172,8 +168,6 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
                                           preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Ok", style: .cancel, handler: nil))
             present(alert, animated: true)
-            
         }
     }
-    
 }

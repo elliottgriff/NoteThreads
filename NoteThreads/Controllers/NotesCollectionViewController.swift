@@ -16,9 +16,7 @@ protocol NotesCollectionViewControllerDelegate: AnyObject {
 }
 
 class NotesCollectionViewController: UICollectionViewController, NewNoteViewControllerDelegate, EditNoteDelegate, UIGestureRecognizerDelegate, UICollectionViewDelegateFlowLayout {
-
     
-
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
 
     private let reuseIdentifier = "NoteCell"
@@ -154,10 +152,15 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         delegate?.refresh()
     }
     
-    func updateNote(newBody: String, index: Int, newDate: Date, newFont: String) {
+    func updateNote(newBody: String, index: Int, newDate: Date, newFont: String, fontSize: Int, fontColor: UIColor, backgroundColor: UIColor) {
+        
         notes[index].body = newBody
         notes[index].date = newDate
         notes[index].font = newFont
+        notes[index].fontSize = fontSize as NSNumber
+        notes[index].color = fontColor
+        notes[index].backgroundColor = backgroundColor
+        
         do {
             try context.save()
         } catch {
@@ -324,7 +327,7 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         if let font = notes[indexPath.row].font,
             let fontColor = notes[indexPath.row].color,
            let backgroundColor = notes[indexPath.row].backgroundColor  {
-            cell.body.font = UIFont(name: font, size: 20)
+            cell.body.font = UIFont(name: font, size: 16)
             cell.body.textColor = fontColor
             cell.contentView.backgroundColor = backgroundColor
         }
@@ -367,13 +370,3 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
     }
     
 }
-//
-//extension UICollectionView {
-//
-//  func indexPathForView(view: AnyObject) -> IndexPath? {
-//      guard let view = view as? UIView else { return nil }
-//      let senderIndexPath = self.convert(CGPoint.zero, from: view)
-//      return self.indexPathForItem(at: senderIndexPath)
-//  }
-//
-//}
