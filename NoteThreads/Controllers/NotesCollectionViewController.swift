@@ -26,7 +26,7 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
     private var groups = [NoteGroup]()
     
     var editSwitch = false
-    var groupInt: Int?
+    var groupName: String?
     
     weak var cellDelegate: NoteCellDelegate?
     weak var delegate: NotesCollectionViewControllerDelegate?
@@ -46,14 +46,13 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         fetchSections()
         fetchNotes()
         
-        if let groupInt = groupInt {
-            title = groups[groupInt].title
+        if let groupName = groupName {
+            title = groupName
         }
-        
     }
     
-    init?(coder: NSCoder, groupInt: Int) {
-        self.groupInt = groupInt
+    init?(coder: NSCoder, groupName: String) {
+        self.groupName = groupName
         super.init(coder: coder)
     }
     
@@ -195,14 +194,10 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         
         let request = Note.fetchRequest()
         let sort1 = NSSortDescriptor(key: "date", ascending: false)
-        guard let groupInt = groupInt else {
-            return
-        }
+        guard let groupName = groupName else { return }
 
-        if let filter = groups[groupInt].title {
-            let predicate = NSPredicate(format: "group = %@", filter)
-            request.predicate = predicate
-        }
+        let predicate = NSPredicate(format: "group = %@", groupName)
+        request.predicate = predicate
         
         request.sortDescriptors = [sort1]
         
@@ -260,16 +255,11 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
             self.collectionView.reloadData()
         }
         
-        guard let groupInt = groupInt else {
-            return nil
-        }
+        guard let groupName = groupName else { return nil }
 
-        if let groupTitle = groups[groupInt].title {
-            let newNoteVC = NewNoteViewController(coder: coder, group: groupTitle)
-            return newNoteVC
-        }
+        let newNoteVC = NewNoteViewController(coder: coder, group: groupName)
+        return newNoteVC
         
-        return NewNoteViewController(coder: coder, group: "fuck")
     }
     
     

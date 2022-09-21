@@ -129,7 +129,6 @@
 				BDCFD7F92052E01C6168B98F /* Pods-NoteThreadsTests.debug.xcconfig */,
 				48160EC2160601C6A15BDB90 /* Pods-NoteThreadsTests.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};

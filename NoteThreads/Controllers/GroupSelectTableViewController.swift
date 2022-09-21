@@ -6,35 +6,56 @@
 //
 
 import UIKit
+import CoreData
 
-class GroupSelectTableViewController: UITableViewController, NotesCollectionViewControllerDelegate {
-    func refresh() {
-        print("group delegate fetching")
-        fetchNotes()
-        fetchSections()
-    }
+class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, NotesCollectionViewControllerDelegate, UISearchResultsUpdating, UISearchBarDelegate {
+
+    @IBOutlet weak var groupSelectTableView: UITableView!
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
+    let searchController = UISearchController(searchResultsController: nil)
+    
     private var noteGroup = [NoteGroup]()
+    private var filteredGroups = [NoteGroup]()
     private var notes = [Note]()
     private var groupInt: Int?
-
+    
+    var isSearchBarEmpty: Bool {
+        return searchController.searchBar.text?.isEmpty ?? true
+    }
+    
+    var isFiltering: Bool {
+        return searchController.isActive && !isSearchBarEmpty
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         fetchNotes()
         fetchSections()
         
-        tableView.delegate = self
-        tableView.dataSource = self
+        self.groupSelectTableView.delegate = self
+        self.groupSelectTableView.dataSource = self
         
-        self.clearsSelectionOnViewWillAppear = false
+        searchController.searchBar.delegate = self
+        navigationItem.rightBarButtonItem = editButtonItem
+        searchController.searchResultsUpdater = self
+        searchController.hidesNavigationBarDuringPresentation = false
+        searchController.searchBar.sizeToFit()
         
-        self.navigationItem.rightBarButtonItem = self.editButtonItem
-        
+        self.groupSelectTableView.tableHeaderView = searchController.searchBar
+        groupSelectTableView.backgroundView = UIView(frame: groupSelectTableView.frame)
+        groupSelectTableView.backgroundView?.backgroundColor = .systemBackground
+
     }
-    
+
+    func refresh() {
+        print("group delegate fetching")
+        fetchNotes()
+        fetchSections()
+    }
+
     func fetchSections() {
         let request = NoteGroup.fetchRequest()
         let sort = NSSortDescriptor(key: "date", ascending: false)
@@ -43,7 +64,7 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
         do {
             noteGroup = try context.fetch(request)
             DispatchQueue.main.async {
-                self.tableView.reloadData()
+                self.groupSelectTableView.reloadData()
             }
         } catch {
             let alert = UIAlertController(title: "Error",
@@ -74,16 +95,59 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
     }
 
     // MARK: - Table view data source
+    
+    func searchBarResultsListButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.showsCancelButton = false
+    }
 
-    override func numberOfSections(in tableView: UITableView) -> Int {
+    func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
 
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 1 + noteGroup.count
+        if isFiltering {
+            return 1 + filteredGroups.count
+        } else {
+            return 1 + noteGroup.count
+        }
+
+    }
+    
+    func filterGroupsForSearchText(_ searchText: String) {
+        if searchText != "" {
+            filteredGroups = noteGroup.filter { (group: NoteGroup) -> Bool in
+                return group.title?.lowercased().contains(searchText.lowercased()) ?? false
+            }
+            fetchNotes()
+            fetchSections()
+            DispatchQueue.main.async {
+                self.groupSelectTableView.reloadData()
+            }
+            
+        } else {
+            fetchNotes()
+            fetchSections()
+            DispatchQueue.main.async {
+                self.groupSelectTableView.reloadData()
+            }
+        }
+        
+    }
+    
+    func updateSearchResults(for searchController: UISearchController) {
+        let searchBar = searchController.searchBar
+        if let filterText = searchBar.text {
+            filterGroupsForSearchText(filterText)
+        }
     }
 
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    override func setEditing(_ editing: Bool, animated: Bool) {
+        super.setEditing(editing, animated: animated)
+        groupSelectTableView.setEditing(editing, animated: true)
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         if indexPath.row == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: "AddGroup", for: indexPath) as! AddGroupTableViewCell
@@ -91,15 +155,25 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
             cell.backgroundColor = .systemYellow
             return cell
         } else {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "GroupCell", for: indexPath) as! GroupTableViewCell
-            guard let title = noteGroup[indexPath.row - 1].title else { return cell }
-            cell.body.text = title
-            cell.tag = indexPath.row - 1
-            return cell
+            if isFiltering {
+                let cell = tableView.dequeueReusableCell(withIdentifier: "GroupCell", for: indexPath) as! GroupTableViewCell
+                guard let title = filteredGroups[indexPath.row - 1].title else { return cell }
+                cell.body.text = title
+                cell.tag = indexPath.row - 1
+                return cell
+            } else {
+                let cell = tableView.dequeueReusableCell(withIdentifier: "GroupCell", for: indexPath) as! GroupTableViewCell
+                guard let title = noteGroup[indexPath.row - 1].title else { return cell }
+                cell.body.text = title
+                cell.tag = indexPath.row - 1
+                return cell
+            }
         }
     }
     
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if indexPath.row == 0 {
                 
                 let alert = UIAlertController(title: "Add Group",
@@ -115,6 +189,8 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
                     let newGroup = NoteGroup(context: context)
                     newGroup.title = newGroupTitle
                     newGroup.date = Date()
+                    newGroup.sectionIndex = Int32((self?.noteGroup.count)!)
+                    print(newGroup.sectionIndex)
                     do {
                         try context.save()
                     } catch {
@@ -123,7 +199,7 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
                     self?.fetchSections()
                     
                     DispatchQueue.main.async {
-                        self?.tableView.reloadData()
+                        tableView.reloadData()
                     }
                     
                 }))
@@ -131,14 +207,41 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
                 self.present(alert, animated: true)
                 
         } else {
-            groupInt = indexPath.row - 1
+            DispatchQueue.main.async {
+                tableView.reloadData()
+            }
         }
         tableView.deselectRow(at: indexPath, animated: true)
     }
 
+    @IBSegueAction func enterGroupSegue(_ coder: NSCoder, sender: GroupTableViewCell?, segueIdentifier: String?) -> NotesCollectionViewController? {
+        
+        guard let index = sender?.tag else { return nil }
+        
+        if !isSearchBarEmpty {
+            print("filtered name", filteredGroups[index].title ?? "No filtered name")
+            guard let name = filteredGroups[index].title else { fatalError("no filtered group name") }
+            let notesCollectionVC = NotesCollectionViewController(coder: coder, groupName: name)
+            notesCollectionVC?.delegate = self
+            searchController.isActive = false
+            return notesCollectionVC
+            
+
+        } else {
+            print("non filtered name", noteGroup[index].title ?? "No non-filtered name")
+            guard let name = noteGroup[index].title else { fatalError("no non-filtered group name") }
+            let notesCollectionVC = NotesCollectionViewController(coder: coder, groupName: name)
+            notesCollectionVC?.delegate = self
+            searchController.isActive = false
+            return notesCollectionVC
+            
+        }
+
+        
+    }
 
     // Override to support conditional editing of the table view.
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
         if indexPath.row == 0 {
             return false
         } else {
@@ -146,48 +249,81 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
         }
     }
 
-
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        fetchSections()
+        fetchNotes()
+        DispatchQueue.main.async {
+            self.groupSelectTableView.reloadData()
+        }
+    }
+    
+    
     // Override to support editing the table view.
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        
         if editingStyle == .delete {
-            context.delete(noteGroup[indexPath.row - 1])
-            for note in notes {
-                if note.group == noteGroup[indexPath.row - 1].title {
-                    print(note)
-                    context.delete(note)
+            
+            if isFiltering {
+
+                for note in notes {
+                    if note.group == filteredGroups[indexPath.row - 1].title {
+                        context.delete(note)
+                    }
+                }
+
+                context.delete(filteredGroups[indexPath.row - 1])
+                filteredGroups.remove(at: indexPath.row - 1)
+                tableView.deleteRows(at: [indexPath], with: .fade)
+
+                do {
+                    try context.save()
+                    fetchNotes()
+                    fetchSections()
+                } catch {
+                    print("cannot delete item")
+                }
+
+                DispatchQueue.main.async {
+                    tableView.reloadData()
+                }
+
+
+
+            } else {
+                
+                for note in notes {
+                    if note.group == noteGroup[indexPath.row - 1].title {
+                        context.delete(note)
+                    }
+                }
+                
+                context.delete(noteGroup[indexPath.row - 1])
+                noteGroup.remove(at: indexPath.row - 1)
+                tableView.deleteRows(at: [indexPath], with: .fade)
+                
+                do {
+                    try context.save()
+                    fetchNotes()
+                    fetchSections()
+                } catch {
+                    print("cannot delete item")
+                }
+                
+                DispatchQueue.main.async {
+                    tableView.reloadData()
                 }
             }
-            do {
-                try context.save()
-                fetchNotes()
-                fetchSections()
-            } catch {
-                print("cannot delete item")
-            }
-            
-            tableView.deleteRows(at: [indexPath], with: .fade)
-            DispatchQueue.main.async {
-                tableView.reloadData()
-            }
+
         } else if editingStyle == .insert {
         }    
     }
+    
+    
 
-    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 70
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 60
     }
     
-    @IBSegueAction func enterGroupSegue(_ coder: NSCoder, sender: NoteCollectionViewCell?, segueIdentifier: String?) -> NotesCollectionViewController? {
-
-        if let groupInt = sender?.tag {
-        let notesCollectionVC = NotesCollectionViewController(coder: coder, groupInt: groupInt)
-            notesCollectionVC?.delegate = self
-        return notesCollectionVC
-        } else {
-            return nil
-        }
-        
-    }
     
     /*
     // Override to support rearranging the table view.
@@ -196,13 +332,11 @@ class GroupSelectTableViewController: UITableViewController, NotesCollectionView
     }
     */
 
-    /*
     // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
+//    func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
+//        // Return false if you do not want the item to be re-orderable.
+//        return true
+//    }
 
 
 }
