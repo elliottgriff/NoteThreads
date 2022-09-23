@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import CoreData
 
 protocol NewNoteViewControllerDelegate: AnyObject {
     func refresh()
@@ -26,6 +27,8 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
     private var fontSize: Int?
     private var fontColor: UIColor?
     private var backgroundColor: UIColor?
+    private var noteIndex: Int?
+    private var groupID: String?
     
     @IBOutlet weak var discardButton: UIButton!
     @IBOutlet weak var saveButton: UIButton!
@@ -36,7 +39,7 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        noteFont = "Arial"
+        noteFont = "Helvetica"
         fontSize = 20
         fontColor = .label
         backgroundColor = .secondarySystemBackground
@@ -47,6 +50,16 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
         colorPicker.delegate = self
         noteBody.delegate = self
         hideKeyboard()
+        
+    }
+    
+    init?(coder: NSCoder, groupID: String) {
+        self.groupID = groupID
+        super.init(coder: coder)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
     func hideKeyboard() {
@@ -79,7 +92,6 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
             setFont(size: Int(fontSizePicker.value), name: noteFont, color: fontColor)
         }
     }
-    
     
     @IBAction func fontStylePressed(_ sender: Any) {
         fontSizePicker.isHidden = true
@@ -144,25 +156,17 @@ class NewNoteViewController: UIViewController, UIFontPickerViewControllerDelegat
         self.dismiss(animated: true)
     }
     
-    init?(coder: NSCoder, group: String) {
-        self.groupString = group
-        super.init(coder: coder)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
     func saveNote(body: String, size: Int) {
         
         let newNote = Note(context: context)
         newNote.body = body
         newNote.date = Date()
-        newNote.group = groupString
+        newNote.groupID = groupID
         newNote.font = noteFont
-        newNote.fontSize = fontSize as NSNumber?
+        newNote.fontSize = size as NSNumber?
         newNote.color = fontColor
         newNote.backgroundColor = backgroundColor
+        newNote.noteIndex = noteIndex as NSNumber?
         
         do {
             try context.save()

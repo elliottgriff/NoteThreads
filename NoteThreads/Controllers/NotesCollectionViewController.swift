@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import CoreData
+import IQKeyboardManagerSwift
 
 protocol NoteCellDelegate: UICollectionViewCell {
     func toggle()
@@ -15,7 +17,7 @@ protocol NotesCollectionViewControllerDelegate: AnyObject {
     func refresh()
 }
 
-class NotesCollectionViewController: UICollectionViewController, NewNoteViewControllerDelegate, EditNoteDelegate, UIGestureRecognizerDelegate, UICollectionViewDelegateFlowLayout {
+class NotesCollectionViewController: UICollectionViewController, NewNoteViewControllerDelegate, EditNoteDelegate, UIGestureRecognizerDelegate, UICollectionViewDelegateFlowLayout, UISearchResultsUpdating, UISearchBarDelegate {
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
 
@@ -23,13 +25,27 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
     private let newNoteSegue = "NewNote"
     
     private var notes = [Note]()
+    private var filteredNotes = [Note]()
     private var groups = [NoteGroup]()
     
     var editSwitch = false
     var groupName: String?
+    var groupID: String?
+    
+    private var titleField = UITextField()
     
     weak var cellDelegate: NoteCellDelegate?
     weak var delegate: NotesCollectionViewControllerDelegate?
+    
+    let searchController = UISearchController(searchResultsController: nil)
+    
+    var isSearchBarEmpty: Bool {
+        return searchController.searchBar.text?.isEmpty ?? true
+    }
+    
+    var isFiltering: Bool {
+        return searchController.isActive && !isSearchBarEmpty
+    }
     
     override func viewDidLoad() {
         
@@ -37,6 +53,13 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         
         collectionView.delegate = self
         collectionView.dataSource = self
+        
+        searchController.searchBar.delegate = self
+        searchController.searchResultsUpdater = self
+        searchController.hidesNavigationBarDuringPresentation = false
+        searchController.searchBar.sizeToFit()
+        
+        self.navigationItem.searchController = searchController
         
         collectionView.setCollectionViewLayout(createLayout(), animated: false)
         collectionView.dragInteractionEnabled = true
@@ -46,13 +69,65 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         fetchSections()
         fetchNotes()
         
+        IQKeyboardManager.shared.enable = false
+        
         if let groupName = groupName {
-            title = groupName
+            titleField.text = groupName
+            titleField.font = UIFont.systemFont(ofSize: 30, weight: .heavy)
+            titleField.addTarget(self, action: #selector(titleFieldDidChange(_:)), for: .editingChanged)
+            titleField.addTarget(self, action: #selector(titleFieldDidEnd(_:)), for: .editingDidEnd)
+        }
+        
+    }
+    
+    override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        switch kind {
+        case UICollectionView.elementKindSectionHeader:
+            let reusableView = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: HeaderCollectionReusableView.identifier, for: indexPath) as! HeaderCollectionReusableView
+            titleField.frame = CGRect(x: 0, y: 0, width: reusableView.frame.width, height: reusableView.frame.height)
+            reusableView.addSubview(titleField)
+            return reusableView
+            
+        default:
+            fatalError("wrong headerView kind")
         }
     }
     
-    init?(coder: NSCoder, groupName: String) {
+    @objc func titleFieldDidEnd(_ textField: UITextField) {
+        
+        guard let groupID = groupID else { return }
+        guard let groupURL = URL(string: groupID) else { return }
+        guard let convertedGroupID = context.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: groupURL) else { return }
+        do {
+            let group = try context.existingObject(with: convertedGroupID) as! NoteGroup
+            group.title = textField.text
+        } catch {
+            print("oops")
+        }
+        
+        do {
+            try context.save()
+        } catch {
+            print("couldn't save context")
+        }
+        delegate?.refresh()
+        fetchSections()
+        fetchNotes()
+        
+        DispatchQueue.main.async {
+            self.collectionView.reloadData()
+        }
+    }
+    
+    @objc func titleFieldDidChange(_ textField: UITextField) {
+
+        titleField.text = textField.text
+
+    }
+    
+    init?(coder: NSCoder, groupName: String, id: String) {
         self.groupName = groupName
+        self.groupID = id
         super.init(coder: coder)
     }
     
@@ -151,14 +226,22 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         delegate?.refresh()
     }
     
-    func updateNote(newBody: String, index: Int, newDate: Date, newFont: String, fontSize: Int, fontColor: UIColor, backgroundColor: UIColor) {
+    func updateNote(newBody: String, id: String, newDate: Date, newFont: String,
+                    fontSize: Int, fontColor: UIColor, backgroundColor: UIColor) {
+
+        guard let groupURL = URL(string: id) else { return }
+        guard let convertedGroupID = context.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: groupURL) else { return }
         
-        notes[index].body = newBody
-        notes[index].date = newDate
-        notes[index].font = newFont
-        notes[index].fontSize = fontSize as NSNumber
-        notes[index].color = fontColor
-        notes[index].backgroundColor = backgroundColor
+        do {
+            let note = try context.existingObject(with: convertedGroupID) as! Note
+            note.body = newBody
+            note.font = newFont
+            note.fontSize = (fontSize) as NSNumber
+            note.color = fontColor
+            note.backgroundColor = backgroundColor
+        } catch {
+            print("oops")
+        }
         
         do {
             try context.save()
@@ -166,9 +249,37 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
             print("couldn't save context")
         }
         fetchNotes()
+        
         DispatchQueue.main.async {
             self.collectionView.reloadData()
         }
+        
+    }
+
+    func fetchNotes() {
+
+        let request = Note.fetchRequest()
+        let sort1 = NSSortDescriptor(key: "date", ascending: false)
+        guard let groupID = groupID else { return }
+
+        let predicate = NSPredicate(format: "groupID = %@", groupID)
+        request.predicate = predicate
+        
+        request.sortDescriptors = [sort1]
+        
+        do {
+            notes = try context.fetch(request)
+            DispatchQueue.main.async {
+                self.collectionView.reloadData()
+            }
+        } catch {
+            let alert = UIAlertController(title: "Error",
+                                          message: "Could Not Load Notes",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Ok", style: .cancel, handler: nil))
+            present(alert, animated: true)
+        }
+        
     }
     
     func fetchSections() {
@@ -190,33 +301,8 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         }
     }
     
-    func fetchNotes() {
-        
-        let request = Note.fetchRequest()
-        let sort1 = NSSortDescriptor(key: "date", ascending: false)
-        guard let groupName = groupName else { return }
-
-        let predicate = NSPredicate(format: "group = %@", groupName)
-        request.predicate = predicate
-        
-        request.sortDescriptors = [sort1]
-        
-        do {
-            notes = try context.fetch(request)
-            DispatchQueue.main.async {
-                self.collectionView.reloadData()
-            }
-        } catch {
-            let alert = UIAlertController(title: "Error",
-                                          message: "Could Not Load Notes",
-                                          preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Ok", style: .cancel, handler: nil))
-            present(alert, animated: true)
-        }
-        
-    }
-    
     func createLayout() -> UICollectionViewCompositionalLayout {
+        
         let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalHeight(1),
                                               heightDimension: .fractionalHeight(1))
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
@@ -228,9 +314,45 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         
         let section = NSCollectionLayoutSection(group: group)
         section.interGroupSpacing = 20
-        section.contentInsets = NSDirectionalEdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 20, bottom: 20, trailing: 20)
+        
+        let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(60))
+        let header = NSCollectionLayoutBoundarySupplementaryItem(layoutSize: headerSize, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top)
+
+        section.boundarySupplementaryItems = [header]
         
         return UICollectionViewCompositionalLayout(section: section)
+        
+    }
+    
+    func updateSearchResults(for searchController: UISearchController) {
+     
+        let searchBar = searchController.searchBar
+        if let filterText = searchBar.text {
+            filterNotesForSearchText(filterText)
+        }
+        
+    }
+    
+    func filterNotesForSearchText(_ searchText: String) {
+        
+        if searchText != "" {
+            filteredNotes = notes.filter { (note: Note) -> Bool in
+                return note.body?.lowercased().contains(searchText.lowercased()) ?? false
+            }
+            fetchNotes()
+            DispatchQueue.main.async {
+                self.collectionView.reloadData()
+            }
+            
+        } else {
+            fetchNotes()
+            fetchSections()
+            DispatchQueue.main.async {
+                self.collectionView.reloadData()
+            }
+        }
+        
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -255,13 +377,15 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
             self.collectionView.reloadData()
         }
         
-        guard let groupName = groupName else { return nil }
-
-        let newNoteVC = NewNoteViewController(coder: coder, group: groupName)
+        guard let groupID = groupID else { return nil }
+        let newNoteVC = NewNoteViewController(coder: coder, groupID: groupID)
         return newNoteVC
         
     }
     
+    override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        searchController.isActive = false
+    }
     
     @IBSegueAction func editNoteSegue(_ coder: NSCoder, sender: UICollectionViewCell?,
                                       segueIdentifier: String?) -> EditNoteViewController? {
@@ -280,49 +404,89 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
         guard let cell = sender,
               let indexPath = collectionView.indexPath(for: cell) else { return nil }
         
-        if let body = notes[indexPath.row].body,
-           let date = notes[indexPath.row].date,
-            let font = notes[indexPath.row].font,
-           let fontSize = notes[indexPath.row].fontSize?.intValue,
-            let fontColor = notes[indexPath.row].color,
-           let backgroundColor = notes[indexPath.row].backgroundColor {
-            print(fontSize, "font size edit segue")
-            let editNoteVC = EditNoteViewController(coder: coder, body: body,
-                                                    index: indexPath.row, date: date,
-                                                    font: font, fontSize: fontSize,
-                                                    fontColor: fontColor, backgroundColor: backgroundColor)
-            return editNoteVC
+        if isFiltering {
+            
+            if let body = filteredNotes[indexPath.row].body,
+               let date = filteredNotes[indexPath.row].date,
+               let font = filteredNotes[indexPath.row].font,
+//               let noteID = filteredNotes[indexPath.row].objectID,
+               let fontSize = filteredNotes[indexPath.row].fontSize?.intValue,
+               let fontColor = filteredNotes[indexPath.row].color,
+               let backgroundColor = filteredNotes[indexPath.row].backgroundColor {
+                let editNoteVC = EditNoteViewController(coder: coder, body: body,
+                                                        id: filteredNotes[indexPath.row].objectID.uriRepresentation().absoluteString, date: date,
+                                                        font: font, fontSize: fontSize,
+                                                        fontColor: fontColor, backgroundColor: backgroundColor)
+                return editNoteVC
+            }         else {
+                print("can't load existing note")
+                return EditNoteViewController(coder: coder, body: "", id: filteredNotes[indexPath.row].objectID.uriRepresentation().absoluteString,
+                                              date: Date(), font: "Arial", fontSize: 18, fontColor: .label,
+                                              backgroundColor: .secondarySystemBackground)
+            }
+            
         } else {
-            print("can't load existing note")
-            return EditNoteViewController(coder: coder, body: "",
-                                          index: indexPath.row, date: Date(),
-                                          font: "Arial", fontSize: 18, fontColor: .label,
-                                          backgroundColor: .secondarySystemBackground)
+            
+            if let body = notes[indexPath.row].body,
+               let date = notes[indexPath.row].date,
+               let font = notes[indexPath.row].font,
+               let fontSize = notes[indexPath.row].fontSize?.intValue,
+               let fontColor = notes[indexPath.row].color,
+               let backgroundColor = notes[indexPath.row].backgroundColor {
+                let editNoteVC = EditNoteViewController(coder: coder, body: body, id: notes[indexPath.row].objectID.uriRepresentation().absoluteString,
+                                                        date: date, font: font, fontSize: fontSize,
+                                                        fontColor: fontColor, backgroundColor: backgroundColor)
+                return editNoteVC
+            }         else {
+                print("can't load existing note")
+                return EditNoteViewController(coder: coder, body: "", id: filteredNotes[indexPath.row].objectID.uriRepresentation().absoluteString,
+                                              date: Date(), font: "Arial", fontSize: 18, fontColor: .label,
+                                              backgroundColor: .secondarySystemBackground)
+            }
         }
     }
-    
+        
     override func numberOfSections(in collectionView: UICollectionView) -> Int {
         return 1
     }
     
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return notes.count
+        
+        if isFiltering {
+            return filteredNotes.count
+        } else {
+            return notes.count
+        }
     }
     
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: reuseIdentifier,
                                                       for: indexPath) as! NoteCollectionViewCell
-        
-        cell.body.text = notes[indexPath.row].body
-        if let font = notes[indexPath.row].font,
-            let fontColor = notes[indexPath.row].color,
-           let backgroundColor = notes[indexPath.row].backgroundColor  {
-            cell.body.font = UIFont(name: font, size: 16)
-            cell.body.textColor = fontColor
-            cell.contentView.backgroundColor = backgroundColor
-        }
+        if isFiltering {
+            
+            cell.body.text = filteredNotes[indexPath.row].body
+            if let font = filteredNotes[indexPath.row].font,
+               let fontColor = filteredNotes[indexPath.row].color,
+               let backgroundColor = filteredNotes[indexPath.row].backgroundColor  {
+                cell.body.font = UIFont(name: font, size: 16)
+                cell.body.textColor = fontColor
+                cell.contentView.backgroundColor = backgroundColor
+            }
+            
+        } else {
+            
+            cell.body.text = notes[indexPath.row].body
+            if let font = notes[indexPath.row].font,
+               let fontColor = notes[indexPath.row].color,
+               let backgroundColor = notes[indexPath.row].backgroundColor  {
+                cell.body.font = UIFont(name: font, size: 16)
+                cell.body.textColor = fontColor
+                cell.contentView.backgroundColor = backgroundColor
+            }
 
+        }
+        
         cell.contentView.layer.cornerRadius = 8
         cell.layer.cornerRadius = 8
         cell.layer.shadowRadius = 3
@@ -357,7 +521,7 @@ class NotesCollectionViewController: UICollectionViewController, NewNoteViewCont
             let layer: CALayer = cell.layer
             layer.add(shakeAnimation, forKey:"shaking")
         }
+        
         return cell
     }
-    
 }

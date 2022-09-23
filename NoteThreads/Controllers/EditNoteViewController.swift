@@ -6,10 +6,12 @@
 //
 
 import UIKit
+import CoreData
 
 protocol EditNoteDelegate: AnyObject {
-    func updateNote(newBody: String, index: Int, newDate: Date,
-                    newFont: String, fontSize: Int, fontColor: UIColor, backgroundColor: UIColor)
+    func updateNote(newBody: String, id: String, newDate: Date,
+                    newFont: String, fontSize: Int, fontColor: UIColor,
+                    backgroundColor: UIColor)
 }
 
 class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelegate, UIColorPickerViewControllerDelegate, UITextViewDelegate {
@@ -17,12 +19,12 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     let bodyString: String?
-    let noteIndex: Int?
     let noteDate: Date?
     var noteFont: String?
     var fontSize: Int?
     var fontColor: UIColor?
     var backgroundColor: UIColor?
+    var noteID: String?
     
     @IBOutlet weak var noteBody: UITextView!
     
@@ -55,8 +57,8 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
             fontSizePicker.setValue(Float(fontSize), animated: true)
         }
         hideKeyboard()
+        print(noteID, "edit noteID")
     }
-    
     
     func hideKeyboard() {
         let swipe: UISwipeGestureRecognizer = UISwipeGestureRecognizer(target: self, action: #selector(dismissKeyboard))
@@ -68,17 +70,17 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
         noteBody.endEditing(true)
     }
     
-    init?(coder: NSCoder, body: String, index: Int,
+    init?(coder: NSCoder, body: String, id: String,
           date: Date, font: String, fontSize: Int,
           fontColor: UIColor, backgroundColor: UIColor) {
         
         self.bodyString = body
-        self.noteIndex = index
         self.noteDate = date
         self.noteFont = font
         self.fontSize = fontSize
         self.fontColor = fontColor
         self.backgroundColor = backgroundColor
+        self.noteID = id
         
         super.init(coder: coder)
 
@@ -108,7 +110,6 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
             setFont(size: Int(fontSizePicker.value), name: noteFont, color: fontColor)
         }
     }
-    
     
     @IBAction func fontStylePressed(_ sender: Any) {
         fontSizePicker.isHidden = true
@@ -147,12 +148,14 @@ class EditNoteViewController: UIViewController, UIFontPickerViewControllerDelega
     }
     
     @IBAction func updateButtonPressed(_ sender: UIButton) {
-        
-        if let body = noteBody.text, let index = noteIndex,
+
+        if let body = noteBody.text, let noteID = noteID,
             let font = noteFont, let size = fontSize,
             let color = fontColor, let backgroundColor = backgroundColor {
 
-            delegate?.updateNote(newBody: body, index: index, newDate: Date(),
+            print(noteID, "update pressed ID")
+            
+            delegate?.updateNote(newBody: body, id: noteID, newDate: Date(),
                                  newFont: font, fontSize: size, fontColor: color,
                                  backgroundColor: backgroundColor)
             

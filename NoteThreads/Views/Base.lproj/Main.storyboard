@@ -111,14 +111,14 @@
                         </connections>
                     </collectionView>
                     <toolbarItems/>
-                    <navigationItem key="navigationItem" largeTitleDisplayMode="always" id="pa7-Hc-Fwt">
+                    <navigationItem key="navigationItem" largeTitleDisplayMode="never" id="pa7-Hc-Fwt">
                         <rightBarButtonItems>
                             <barButtonItem image="pencil" catalog="system" id="o6N-44-6bH">
                                 <connections>
                                     <segue destination="cze-IK-s3s" kind="presentation" destinationCreationSelector="createNewNotePressed:sender:segueIdentifier:" modalPresentationStyle="fullScreen" id="mGR-9V-M4N"/>
                                 </connections>
                             </barButtonItem>
-                            <barButtonItem image="trash.fill" catalog="system" id="ZPg-8h-FYK">
+                            <barButtonItem image="trash" catalog="system" id="ZPg-8h-FYK">
                                 <connections>
                                     <action selector="editPressed:" destination="yZA-YF-xxN" id="yb7-ol-f1f"/>
                                 </connections>
@@ -272,34 +272,11 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="iVR-h2-40j">
-                                <rect key="frame" x="0.0" y="142" width="414" height="720"/>
+                                <rect key="frame" x="0.0" y="152" width="414" height="710"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="AddGroup" id="DTe-gs-XKb" customClass="AddGroupTableViewCell" customModule="NoteThreads" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="50" width="414" height="43.5"/>
-                                        <autoresizingMask key="autoresizingMask"/>
-                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="DTe-gs-XKb" id="4vO-by-NaA">
-                                            <rect key="frame" x="0.0" y="0.0" width="414" height="43.5"/>
-                                            <autoresizingMask key="autoresizingMask"/>
-                                            <subviews>
-                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="A6g-jr-8al">
-                                                    <rect key="frame" x="186" y="11.5" width="42" height="21"/>
-                                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                                    <nil key="textColor"/>
-                                                    <nil key="highlightedColor"/>
-                                                </label>
-                                            </subviews>
-                                            <constraints>
-                                                <constraint firstItem="A6g-jr-8al" firstAttribute="centerX" secondItem="4vO-by-NaA" secondAttribute="centerX" id="3F0-nT-bYa"/>
-                                                <constraint firstItem="A6g-jr-8al" firstAttribute="centerY" secondItem="4vO-by-NaA" secondAttribute="centerY" id="fse-fG-Cdk"/>
-                                            </constraints>
-                                        </tableViewCellContentView>
-                                        <connections>
-                                            <outlet property="body" destination="A6g-jr-8al" id="lcs-CZ-ETL"/>
-                                        </connections>
-                                    </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="GroupCell" id="VhZ-Jx-EeI" customClass="GroupTableViewCell" customModule="NoteThreads" customModuleProvider="target">
-                                        <rect key="frame" x="0.0" y="93.5" width="414" height="43.5"/>
+                                        <rect key="frame" x="0.0" y="50" width="414" height="43.5"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="VhZ-Jx-EeI" id="8lz-Ye-ETJ">
                                             <rect key="frame" x="0.0" y="0.0" width="414" height="43.5"/>
@@ -324,31 +301,37 @@
                                     </tableViewCell>
                                 </prototypes>
                             </tableView>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Groups" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="upC-hE-QK4">
-                                <rect key="frame" x="20" y="92" width="374" height="50"/>
+                            <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" minimumFontSize="30" translatesAutoresizingMaskIntoConstraints="NO" id="lYA-lS-Ovs">
+                                <rect key="frame" x="20" y="92" width="374" height="60"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="50" id="f2K-Nm-OeO"/>
+                                    <constraint firstAttribute="height" constant="60" id="Tlw-h9-ZJx"/>
                                 </constraints>
-                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                <nil key="textColor"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                                <fontDescription key="fontDescription" type="boldSystem" pointSize="40"/>
+                                <textInputTraits key="textInputTraits"/>
+                            </textField>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Ri4-F5-lLl"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
                             <constraint firstItem="Ri4-F5-lLl" firstAttribute="trailing" secondItem="iVR-h2-40j" secondAttribute="trailing" id="1Bk-Bd-msK"/>
-                            <constraint firstItem="upC-hE-QK4" firstAttribute="leading" secondItem="Ri4-F5-lLl" secondAttribute="leading" constant="20" id="2Uv-xu-sjK"/>
                             <constraint firstItem="iVR-h2-40j" firstAttribute="leading" secondItem="Ri4-F5-lLl" secondAttribute="leading" id="NqO-yK-Lds"/>
-                            <constraint firstItem="Ri4-F5-lLl" firstAttribute="trailing" secondItem="upC-hE-QK4" secondAttribute="trailing" constant="20" id="SlS-nZ-1D2"/>
-                            <constraint firstItem="upC-hE-QK4" firstAttribute="top" secondItem="Ri4-F5-lLl" secondAttribute="top" id="ZCY-7H-q8L"/>
-                            <constraint firstItem="iVR-h2-40j" firstAttribute="top" secondItem="upC-hE-QK4" secondAttribute="bottom" id="m66-dR-cHU"/>
+                            <constraint firstItem="Ri4-F5-lLl" firstAttribute="trailing" secondItem="lYA-lS-Ovs" secondAttribute="trailing" constant="20" id="O4y-UH-2qX"/>
+                            <constraint firstItem="iVR-h2-40j" firstAttribute="top" secondItem="lYA-lS-Ovs" secondAttribute="bottom" id="Tly-5O-bfM"/>
+                            <constraint firstItem="lYA-lS-Ovs" firstAttribute="leading" secondItem="Ri4-F5-lLl" secondAttribute="leading" constant="20" id="ccK-qp-k69"/>
+                            <constraint firstItem="lYA-lS-Ovs" firstAttribute="top" secondItem="Ri4-F5-lLl" secondAttribute="top" id="vyK-8d-MYE"/>
                             <constraint firstItem="Ri4-F5-lLl" firstAttribute="bottom" secondItem="iVR-h2-40j" secondAttribute="bottom" id="zOQ-Y5-Kye"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" id="GBk-0l-PkK"/>
+                    <navigationItem key="navigationItem" id="GBk-0l-PkK">
+                        <barButtonItem key="rightBarButtonItem" image="plus.rectangle.on.folder" catalog="system" id="6L6-cL-RuN">
+                            <connections>
+                                <action selector="newGroupPressed:" destination="8XV-5P-cMW" id="q49-zc-5fT"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                     <connections>
                         <outlet property="groupSelectTableView" destination="iVR-h2-40j" id="rPD-Qg-J1B"/>
+                        <outlet property="homeTitleLabel" destination="lYA-lS-Ovs" id="TNA-Pg-u02"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="RQm-ay-fmh" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
@@ -508,9 +491,10 @@
         <image name="paintbrush" catalog="system" width="122" height="128"/>
         <image name="paintbrush.pointed" catalog="system" width="128" height="118"/>
         <image name="pencil" catalog="system" width="128" height="113"/>
+        <image name="plus.rectangle.on.folder" catalog="system" width="128" height="95"/>
         <image name="textformat.abc" catalog="system" width="128" height="61"/>
         <image name="textformat.size" catalog="system" width="128" height="79"/>
-        <image name="trash.fill" catalog="system" width="119" height="128"/>
+        <image name="trash" catalog="system" width="117" height="128"/>
         <image name="xmark" catalog="system" width="128" height="113"/>
         <systemColor name="labelColor">
             <color red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

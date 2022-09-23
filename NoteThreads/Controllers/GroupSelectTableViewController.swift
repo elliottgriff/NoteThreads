@@ -11,11 +11,13 @@ import CoreData
 class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, NotesCollectionViewControllerDelegate, UISearchResultsUpdating, UISearchBarDelegate {
 
     @IBOutlet weak var groupSelectTableView: UITableView!
+    @IBOutlet weak var homeTitleLabel: UITextField!
     
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     let searchController = UISearchController(searchResultsController: nil)
     
+    private var homeTitle = [HomeTitle]()
     private var noteGroup = [NoteGroup]()
     private var filteredGroups = [NoteGroup]()
     private var notes = [Note]()
@@ -32,6 +34,7 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        fetchTitle()
         fetchNotes()
         fetchSections()
         
@@ -39,7 +42,7 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
         self.groupSelectTableView.dataSource = self
         
         searchController.searchBar.delegate = self
-        navigationItem.rightBarButtonItem = editButtonItem
+        navigationItem.leftBarButtonItem = editButtonItem
         searchController.searchResultsUpdater = self
         searchController.hidesNavigationBarDuringPresentation = false
         searchController.searchBar.sizeToFit()
@@ -47,9 +50,16 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
         self.groupSelectTableView.tableHeaderView = searchController.searchBar
         groupSelectTableView.backgroundView = UIView(frame: groupSelectTableView.frame)
         groupSelectTableView.backgroundView?.backgroundColor = .systemBackground
-
+        
+        if homeTitle.first?.title == nil {
+            homeTitleLabel.text = "Groups"
+        } else {
+            homeTitleLabel.text = homeTitle.first?.title
+        }
+        homeTitleLabel.addTarget(self, action: #selector(titleFieldDidChange(_:)), for: .editingChanged)
+        homeTitleLabel.addTarget(self, action: #selector(titleFieldDidEnd(_:)), for: .editingDidEnd)
     }
-
+    
     func refresh() {
         print("group delegate fetching")
         fetchNotes()
@@ -93,8 +103,58 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
         }
         
     }
+    
+    func fetchTitle() {
+        
+        let request = HomeTitle.fetchRequest()
+        
+        do {
+            homeTitle = try context.fetch(request)
+        } catch {
+            print("couldn't load title")
+        }
+        
+    }
+    
+    @objc func titleFieldDidEnd(_ textField: UITextField) {
+        
+        do {
+            if let titleID = homeTitle.first?.objectID {
+                let newTitle = try context.existingObject(with: titleID) as! HomeTitle
+                newTitle.title = textField.text
+                print(newTitle.title, "newtitle")
+            } else {
+                let newTitle = HomeTitle(context: context)
+                newTitle.title = textField.text
+                print(newTitle.title, "brand newtitle")
+            }
+        } catch {
+            print("oops")
+        }
+
+        do {
+            try context.save()
+        } catch {
+            print("couldn't save context")
+        }
+        
+        DispatchQueue.main.async {
+            self.groupSelectTableView.reloadData()
+        }
+    }
+    
+    @objc func titleFieldDidChange(_ textField: UITextField) {
+
+        homeTitleLabel.text = textField.text
+
+    }
 
     // MARK: - Table view data source
+    
+//    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+//        titleField.frame = CGRect(x: 10, y: 0, width: tableView.frame.width, height: tableView.frame.height)
+//        return titleField
+//    }
     
     func searchBarResultsListButtonClicked(_ searchBar: UISearchBar) {
         searchBar.showsCancelButton = false
@@ -107,14 +167,15 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
 
         if isFiltering {
-            return 1 + filteredGroups.count
+            return filteredGroups.count
         } else {
-            return 1 + noteGroup.count
+            return noteGroup.count
         }
 
     }
     
     func filterGroupsForSearchText(_ searchText: String) {
+       
         if searchText != "" {
             filteredGroups = noteGroup.filter { (group: NoteGroup) -> Bool in
                 return group.title?.lowercased().contains(searchText.lowercased()) ?? false
@@ -149,69 +210,66 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        if indexPath.row == 0 {
-            let cell = tableView.dequeueReusableCell(withIdentifier: "AddGroup", for: indexPath) as! AddGroupTableViewCell
-            cell.body.text = "New Group"
-            cell.backgroundColor = .systemYellow
-            return cell
-        } else {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "GroupCell", for: indexPath) as! GroupTableViewCell
+        
+        cell.preservesSuperviewLayoutMargins = false
+        cell.separatorInset = UIEdgeInsets.zero
+        cell.layoutMargins = UIEdgeInsets.zero
+        
             if isFiltering {
-                let cell = tableView.dequeueReusableCell(withIdentifier: "GroupCell", for: indexPath) as! GroupTableViewCell
-                guard let title = filteredGroups[indexPath.row - 1].title else { return cell }
+                guard let title = filteredGroups[indexPath.row].title else { return cell }
                 cell.body.text = title
-                cell.tag = indexPath.row - 1
+                cell.tag = indexPath.row
                 return cell
             } else {
-                let cell = tableView.dequeueReusableCell(withIdentifier: "GroupCell", for: indexPath) as! GroupTableViewCell
-                guard let title = noteGroup[indexPath.row - 1].title else { return cell }
+                guard let title = noteGroup[indexPath.row].title else { return cell }
                 cell.body.text = title
-                cell.tag = indexPath.row - 1
+                cell.tag = indexPath.row
                 return cell
             }
-        }
+
     }
     
-
+    
+    @IBAction func newGroupPressed(_ sender: Any) {
+        let alert = UIAlertController(title: "New Group",
+                                      message: "Enter Group Name",
+                                      preferredStyle: .alert)
+        
+        alert.addTextField(configurationHandler: nil)
+        alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { [weak self] _ in
+            guard let field = alert.textFields?.first,
+                    let newGroupTitle = field.text, !newGroupTitle.isEmpty,
+                    let context = self?.context else { return }
+            
+            let newGroup = NoteGroup(context: context)
+            newGroup.title = newGroupTitle
+            newGroup.date = Date()
+            newGroup.sectionIndex = Int32((self?.noteGroup.count)!)
+            print(newGroup.sectionIndex)
+            do {
+                try context.save()
+            } catch {
+                print("couldn't update new groups")
+            }
+            self?.fetchSections()
+            
+            DispatchQueue.main.async {
+                self?.groupSelectTableView.reloadData()
+            }
+            
+        }))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        self.present(alert, animated: true)
+    }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if indexPath.row == 0 {
-                
-                let alert = UIAlertController(title: "Add Group",
-                                              message: "Enter Group Name",
-                                              preferredStyle: .alert)
-                
-                alert.addTextField(configurationHandler: nil)
-                alert.addAction(UIAlertAction(title: "Save", style: .default, handler: { [weak self] _ in
-                    guard let field = alert.textFields?.first,
-                            let newGroupTitle = field.text, !newGroupTitle.isEmpty,
-                            let context = self?.context else { return }
-                    
-                    let newGroup = NoteGroup(context: context)
-                    newGroup.title = newGroupTitle
-                    newGroup.date = Date()
-                    newGroup.sectionIndex = Int32((self?.noteGroup.count)!)
-                    print(newGroup.sectionIndex)
-                    do {
-                        try context.save()
-                    } catch {
-                        print("couldn't update new groups")
-                    }
-                    self?.fetchSections()
-                    
-                    DispatchQueue.main.async {
-                        tableView.reloadData()
-                    }
-                    
-                }))
-                alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                self.present(alert, animated: true)
-                
-        } else {
-            DispatchQueue.main.async {
-                tableView.reloadData()
-            }
+
+        DispatchQueue.main.async {
+            tableView.reloadData()
         }
         tableView.deselectRow(at: indexPath, animated: true)
+        
     }
 
     @IBSegueAction func enterGroupSegue(_ coder: NSCoder, sender: GroupTableViewCell?, segueIdentifier: String?) -> NotesCollectionViewController? {
@@ -221,32 +279,25 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
         if !isSearchBarEmpty {
             print("filtered name", filteredGroups[index].title ?? "No filtered name")
             guard let name = filteredGroups[index].title else { fatalError("no filtered group name") }
-            let notesCollectionVC = NotesCollectionViewController(coder: coder, groupName: name)
+            let notesCollectionVC = NotesCollectionViewController(coder: coder, groupName: name, id: noteGroup[index].objectID.uriRepresentation().absoluteString)
             notesCollectionVC?.delegate = self
             searchController.isActive = false
             return notesCollectionVC
-            
 
         } else {
             print("non filtered name", noteGroup[index].title ?? "No non-filtered name")
             guard let name = noteGroup[index].title else { fatalError("no non-filtered group name") }
-            let notesCollectionVC = NotesCollectionViewController(coder: coder, groupName: name)
+            let notesCollectionVC = NotesCollectionViewController(coder: coder, groupName: name, id: noteGroup[index].objectID.uriRepresentation().absoluteString)
             notesCollectionVC?.delegate = self
             searchController.isActive = false
             return notesCollectionVC
             
         }
-
-        
     }
 
     // Override to support conditional editing of the table view.
     func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        if indexPath.row == 0 {
-            return false
-        } else {
             return true
-        }
     }
 
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
@@ -257,7 +308,6 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
         }
     }
     
-    
     // Override to support editing the table view.
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         
@@ -266,13 +316,13 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
             if isFiltering {
 
                 for note in notes {
-                    if note.group == filteredGroups[indexPath.row - 1].title {
+                    if note.groupID == filteredGroups[indexPath.row].objectID.uriRepresentation().absoluteString {
                         context.delete(note)
                     }
                 }
 
-                context.delete(filteredGroups[indexPath.row - 1])
-                filteredGroups.remove(at: indexPath.row - 1)
+                context.delete(filteredGroups[indexPath.row])
+                filteredGroups.remove(at: indexPath.row)
                 tableView.deleteRows(at: [indexPath], with: .fade)
 
                 do {
@@ -287,18 +337,16 @@ class GroupSelectTableViewController: UIViewController, UITableViewDelegate, UIT
                     tableView.reloadData()
                 }
 
-
-
             } else {
                 
                 for note in notes {
-                    if note.group == noteGroup[indexPath.row - 1].title {
+                    if note.groupID == noteGroup[indexPath.row].objectID.uriRepresentation().absoluteString {
                         context.delete(note)
                     }
                 }
                 
-                context.delete(noteGroup[indexPath.row - 1])
-                noteGroup.remove(at: indexPath.row - 1)
+                context.delete(noteGroup[indexPath.row])
+                noteGroup.remove(at: indexPath.row)
                 tableView.deleteRows(at: [indexPath], with: .fade)
                 
                 do {
